@@ -1,0 +1,53 @@
+{
+  "name": "prompt-optimizer",
+  "version": "1.0.0",
+  "description": "AI Prompt Optimization Tool built with React and Cloudflare",
+  "type": "module",
+  "main": "index.js",
+  "keywords": [
+    "ai",
+    "prompt",
+    "optimization",
+    "openai",
+    "cloudflare",
+    "react",
+    "sse",
+    "dark-mode"
+  ],
+  "author": "WonderLand33",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/WonderLand33/prompt-optimizer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/WonderLand33/prompt-optimizer/issues"
+  },
+  "homepage": "https://github.com/WonderLand33/prompt-optimizer#readme",
+  "scripts": {
+    "dev": "vite",
+    "dev:setup": "node scripts/dev.js",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "node scripts/deploy.js",
+    "deploy:simple": "wrangler pages deploy dist",
+    "functions:dev": "wrangler pages dev dist --compatibility-date=2023-12-01",
+    "functions:deploy": "wrangler pages deploy dist --compatibility-date=2023-12-01",
+    "test:api": "node tests/api.test.js"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "lucide-react": "^0.294.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.3.6",
+    "vite": "^5.0.8",
+    "wrangler": "^3.19.0"
+  }
+}
