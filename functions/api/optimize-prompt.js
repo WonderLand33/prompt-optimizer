@@ -27,17 +27,37 @@ export async function onRequestPost(context) {
 
   try {
     // Parse request body
-    const { prompt, turnstileToken } = await request.json();
+    const { prompt, turnstileToken, language = 'en' } = await request.json();
+
+    // Multi-language error messages
+    const errorMessages = {
+      en: {
+        noPrompt: 'Please provide a prompt to optimize',
+        noTurnstile: 'Please complete the verification',
+        turnstileFailed: 'Verification failed',
+        aiUnavailable: 'AI service is temporarily unavailable, please try again later',
+        serverError: 'Internal server error'
+      },
+      zh: {
+        noPrompt: '请提供需要优化的Prompt',
+        noTurnstile: '请完成验证码验证',
+        turnstileFailed: '验证码验证失败',
+        aiUnavailable: 'AI服务暂时不可用，请稍后重试',
+        serverError: '服务器内部错误'
+      }
+    };
+
+    const messages = errorMessages[language] || errorMessages.en;
 
     if (!prompt || !prompt.trim()) {
-      return new Response(JSON.stringify({ error: '请提供需要优化的Prompt' }), {
+      return new Response(JSON.stringify({ error: messages.noPrompt }), {
         status: 400,
         headers: { 'Content-Type': 'application/json', ...corsHeaders }
       });
     }
 
     if (!turnstileToken) {
-      return new Response(JSON.stringify({ error: '请完成验证码验证' }), {
+      return new Response(JSON.stringify({ error: messages.noTurnstile }), {
         status: 400,
         headers: { 'Content-Type': 'application/json', ...corsHeaders }
       });
@@ -55,18 +75,26 @@ export async function onRequestPost(context) {
     const turnstileResult = await turnstileResponse.json();
     
     if (!turnstileResult.success) {
-      return new Response(JSON.stringify({ error: '验证码验证失败' }), {
+      return new Response(JSON.stringify({ error: messages.turnstileFailed }), {
         status: 400,
         headers: { 'Content-Type': 'application/json', ...corsHeaders }
       });
     }
 
-    // Prepare the optimization prompt
-    const systemPrompt = env.SYSTEM_PROMPT;
+    // Prepare the optimization prompt with multi-language support
+    // Use environment variables based on language
+    const systemPrompt = language === 'zh' ? env.SYSTEM_PROMPT_ZH : env.SYSTEM_PROMPT_EN;
 
-    const userPrompt = `请优化以下Prompt：
+    const userPrompts = {
+      en: `Please optimize the following prompt:
 
-${prompt}`;
+${prompt}`,
+      zh: `请优化以下Prompt：
+
+${prompt}`
+    };
+
+    const userPrompt = userPrompts[language] || userPrompts.en;
 
     // Create SSE stream
     const { readable, writable } = new TransformStream();
@@ -103,7 +131,7 @@ ${prompt}`;
         if (!openaiResponse.ok) {
           const errorData = await openaiResponse.json();
           console.error('OpenAI API Error:', errorData);
-          await sendSSE({ error: 'AI服务暂时不可用，请稍后重试' }, 'error');
+          await sendSSE({ error: messages.aiUnavailable }, 'error');
           await writer.close();
           return;
         }
@@ -166,7 +194,7 @@ ${prompt}`;
         console.error(`❌ Function Error (Duration: ${duration}ms):`, error);
         
         await sendSSE({ 
-          error: '服务器内部错误',
+          error: messages.serverError,
           timestamp: new Date().toISOString()
         }, 'error');
       } finally {
@@ -183,8 +211,11 @@ ${prompt}`;
     const duration = Date.now() - startTime;
     console.error(`❌ Function Error (Duration: ${duration}ms):`, error);
     
+    // Default error message for catch block (when language might not be available)
+    const defaultErrorMessage = 'Internal server error';
+    
     return new Response(JSON.stringify({ 
-      error: '服务器内部错误',
+      error: defaultErrorMessage,
       timestamp: new Date().toISOString()
     }), {
       status: 500,

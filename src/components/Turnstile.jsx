@@ -1,6 +1,11 @@
 import React, { useEffect, useRef, forwardRef, useImperativeHandle } from 'react'
 
-const Turnstile = forwardRef(({ siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY || "1x00000000000000000000AA", onVerify }, ref) => {
+const Turnstile = forwardRef(({ 
+  siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY || "1x00000000000000000000AA", 
+  onVerify,
+  theme = 'light',
+  language = 'en'
+}, ref) => {
   const containerRef = useRef(null)
   const widgetId = useRef(null)
 
@@ -19,10 +24,27 @@ const Turnstile = forwardRef(({ siteKey = import.meta.env.VITE_TURNSTILE_SITE_KE
   }))
 
   useEffect(() => {
+    const cleanup = () => {
+      if (window.turnstile && widgetId.current !== null) {
+        window.turnstile.remove(widgetId.current)
+        widgetId.current = null
+      }
+      if (containerRef.current) {
+        containerRef.current.innerHTML = ''
+      }
+    }
+
     const renderTurnstile = () => {
       if (window.turnstile && containerRef.current) {
+        // Map language codes to Turnstile supported languages
+        const turnstileLanguage = language === 'zh' ? 'zh-CN' : 'en'
+        
+        console.log('Rendering Turnstile with theme:', theme, 'language:', turnstileLanguage)
+        
         widgetId.current = window.turnstile.render(containerRef.current, {
           sitekey: siteKey,
+          theme: theme,
+          language: turnstileLanguage,
           callback: (token) => {
             if (onVerify) {
               onVerify(token)
@@ -38,6 +60,9 @@ const Turnstile = forwardRef(({ siteKey = import.meta.env.VITE_TURNSTILE_SITE_KE
       }
     }
 
+    // Clean up previous widget before rendering new one
+    cleanup()
+
     if (window.turnstile) {
       renderTurnstile()
     } else {
@@ -49,15 +74,14 @@ const Turnstile = forwardRef(({ siteKey = import.meta.env.VITE_TURNSTILE_SITE_KE
         }
       }, 100)
 
-      return () => clearInterval(checkTurnstile)
-    }
-
-    return () => {
-      if (window.turnstile && widgetId.current !== null) {
-        window.turnstile.remove(widgetId.current)
+      return () => {
+        clearInterval(checkTurnstile)
+        cleanup()
       }
     }
-  }, [siteKey, onVerify])
+
+    return cleanup
+  }, [siteKey, onVerify, theme, language])
 
   return <div ref={containerRef}></div>
 })
